@@ -27,16 +27,15 @@ export const getTodos = async (req, res) => {
     const search = req.query.search;
 
     // 2️⃣ Строим фильтр
-    const filter = { userId: req.user.id, archived: false };
+    const filter = { userId: req.user.id, archived: false, completed: false };
 
     const archived = req.query.archived;
 
     if (archived !== undefined) {
       filter.archived = archived === "true";
     }
-
     if (completed !== undefined) {
-      filter.completed = completed === "true"; // преобразуем в boolean
+      filter.completed = completed === "true";
     }
 
     if (search) {
@@ -69,13 +68,14 @@ export const getTodos = async (req, res) => {
 export const updateTodo = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, completed } = req.body;
+    const { title, completed, archived } = req.body;
 
     const todo = await Todo.findOne({ _id: id, userId: req.user.id });
     if (!todo) return res.status(404).json({ message: "Todo not found" });
 
     if (title !== undefined) todo.title = title;
     if (completed !== undefined) todo.completed = completed;
+    if (archived !== undefined) todo.archived = archived;
 
     await todo.save();
     res.json(todo);
@@ -89,17 +89,16 @@ export const deleteTodo = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const todo = await Todo.findOneAndUpdate(
-      { _id: id, userId: req.user.id },
-      { archived: true },
-      { new: true }
-    );
+    const todo = await Todo.findOneAndDelete({
+      _id: id,
+      userId: req.user.id,
+    });
 
     if (!todo) {
       return res.status(404).json({ message: "Todo not found" });
     }
 
-    res.json({ message: "Todo archived" });
+    res.status(204).send();
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
